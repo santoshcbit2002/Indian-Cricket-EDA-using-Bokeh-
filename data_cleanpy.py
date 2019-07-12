@@ -1,8 +1,4 @@
-from bokeh.io import output_notebook
-from bokeh.plotting import figure, show, output_file
-from bokeh.layouts import row, column
-from bokeh.models import CustomJS, Slider, ColumnDataSource, CDSView, GroupFilter
-from bokeh.plotting import reset_output
+
 import numpy as np
 import pandas as pd
 import warnings
