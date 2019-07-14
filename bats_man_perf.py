@@ -15,65 +15,76 @@ print(bats_man_data.head(2))
 
 yr=max(bats_man_data.Year_bats)
 bats_man_name_list=list(bats_man_data.Batsman.unique())
-bats_man_name_init='Shikhar Dhawan'
-bats_man_data_year=bats_man_data[(bats_man_data['Batsman']==bats_man_name_init) & (bats_man_data['Year_bats']==yr)].groupby(['Batsman','Year_bats','Match_ID'])['Runs'].sum().sort_values().reset_index().sort_values(by=['Match_ID'])
-bats_man_data_year['cumruns']=bats_man_data_year['Runs'].cumsum()
+opposition_list=list(bats_man_data.Opposition_bats.unique())
+opposition_list.insert(0,'All')
 
-data_cds=ColumnDataSource(bats_man_data_year)   
+bats_man_name_init=bats_man_name_list[0]
+bats_man_data_year=bats_man_data[(bats_man_data['Batsman']==bats_man_name_init) & (bats_man_data['Year_bats']==yr)].groupby(['Match_ID','4s'])['Runs'].sum().sort_values().reset_index().sort_values(by=['Match_ID'])
+bats_man_data_year.rename({'4s': 'shots'},axis='columns',inplace=True)
+
+runs_cds=ColumnDataSource(bats_man_data_year[['Match_ID','Runs']])   
+shots_cds=ColumnDataSource(bats_man_data_year[['Match_ID','shots']])
 
 fig = figure(title='Player Performance Across the Seasons in a Year',
              y_range=[0,300],
              x_range=list(np.sort(bats_man_data_year['Match_ID'].unique()))
              )
 
-fig.vbar(x='Match_ID',top='Runs',source=data_cds,width=0.2)
+fig.line(x='Match_ID',y='Runs',source=runs_cds,line_width=4,line_color="blue")
+fig.line(x='Match_ID',y='shots',source=shots_cds,line_width=4,line_color="Orange")
 fig.xaxis.major_label_orientation = "vertical"
 
 slider = Slider(start=min(bats_man_data.Year_bats), end=max(bats_man_data.Year_bats), step=1, value=min(bats_man_data.Year_bats), title='Year of Play')
 radiogroup_batsman = RadioGroup(labels=bats_man_name_list, active=0)
-#radio_button_group = RadioButtonGroup(labels=['Win', 'Loss','Tie'], active=0)
+run_type = RadioButtonGroup(labels=['Number of 4s','Number of 6s'], active=0)
+radiogroup_oppo= RadioGroup(labels=opposition_list, active=0)
 
 def update(attr,old,new):
-  yr = slider.value
-  print('Slider Value is : ', yr)
+  yr1 = slider.value
+  print('Slider Value is : ', yr1)
   
   selected_batsman=bats_man_name_list[radiogroup_batsman.active]
   print('Selected batsman is : ', selected_batsman)
-
-  new_source=bats_man_data[(bats_man_data['Batsman']==selected_batsman) & (bats_man_data['Year_bats']==yr)].groupby(['Batsman','Year_bats','Match_ID'])['Runs'].sum().sort_values().reset_index().sort_values(by=['Match_ID'])
-
-  new_data_cds=ColumnDataSource(new_source) 
   
-  data_cds.data=new_data_cds.data
+  selected_oppo=opposition_list[radiogroup_oppo.active]
+  print('Selected Opposition Team is : ', selected_oppo)
 
-#  button_value= radio_button_group.active
-#  print('Button value  is : ', button_value)
-  
-#  if button_value==0:
-#         won_source=new_source[new_source['Result']=='won']
-#         new_won_cds= ColumnDataSource(won_source)
-#         total_cds.data=new_won_cds.data
-#  if button_value==1:
-#         lost_source=new_source[new_source['Result']=='lost']
-#         new_lost_cds= ColumnDataSource(lost_source)
-#         total_cds.data=new_lost_cds.data
-#  if button_value==2:
-#         tied_source=new_source[new_source['Result']=='tied']
-#         new_tied_cds= ColumnDataSource(tied_source)
-#         total_cds.data=new_tied_cds.data
+  button_value= run_type.active
+  print('Button value  is : ', button_value)
+  if selected_oppo == 'All':
 
+    if button_value==0:
+      new_source=bats_man_data[(bats_man_data['Batsman']==selected_batsman) & (bats_man_data['Year_bats']==yr1)].groupby(['Match_ID','4s'])['Runs'].sum().sort_values().reset_index().sort_values(by=['Match_ID'])
+      new_source.rename({'4s': 'shots'},axis='columns',inplace=True)
+
+    if button_value==1:
+      new_source=bats_man_data[(bats_man_data['Batsman']==selected_batsman) & (bats_man_data['Year_bats']==yr1)].groupby(['Match_ID','6s'])['Runs'].sum().sort_values().reset_index().sort_values(by=['Match_ID'])
+      new_source.rename({'6s': 'shots'},axis='columns',inplace=True)
+  else:
+    if button_value==0:
+      new_source=bats_man_data[(bats_man_data['Batsman']==selected_batsman) & (bats_man_data['Year_bats']==yr1) & (bats_man_data['Opposition_bats']==selected_oppo)].groupby(['Match_ID','4s'])['Runs'].sum().sort_values().reset_index().sort_values(by=['Match_ID'])
+      new_source.rename({'4s': 'shots'},axis='columns',inplace=True)
+
+    if button_value==1:
+      new_source=bats_man_data[(bats_man_data['Batsman']==selected_batsman) & (bats_man_data['Year_bats']==yr1) & (bats_man_data['Opposition_bats']==selected_oppo)].groupby(['Match_ID','6s'])['Runs'].sum().sort_values().reset_index().sort_values(by=['Match_ID'])
+      new_source.rename({'6s': 'shots'},axis='columns',inplace=True)
+    
+  new_runs_cds=ColumnDataSource(new_source[['Match_ID','Runs']])   
+  new_shots_cds=ColumnDataSource(new_source[['Match_ID','shots']])
+  runs_cds.data=new_runs_cds.data
+  shots_cds.data=new_shots_cds.data
+    
   fig.title.text='%s Performance Across the Seasons in the Year %d' % (selected_batsman,yr)
   fig.x_range.factors=[]
   fig.x_range.factors=list(np.sort(new_source['Match_ID'].unique()))
 
 
-    
-#radio_button_group.on_change('active',lambda attr, old, new :update(attr, old, new))
-
+run_type.on_change('active',lambda attr, old, new :update(attr, old, new))
 slider.on_change('value', update)
 radiogroup_batsman.on_change('active', update)
+radiogroup_oppo.on_change('active', update)
 
 # Make a row layout of widgetbox(slider) and plot and add it to the current document
-layout = row(column(widgetbox(slider),widgetbox(radiogroup_batsman)), fig)
+layout = row(column(widgetbox(slider),widgetbox(radiogroup_batsman)), fig, column(widgetbox(run_type),widgetbox(radiogroup_oppo)))
 
 curdoc().add_root(layout)
